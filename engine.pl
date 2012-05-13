@@ -91,11 +91,6 @@ assert_fact(Fact) :-
 	debug(engine, 'assert_fact: asserting fact(~p, ~p)', [Fact, Seq]),
 	asserta(fact(Fact, Seq)).
 
-%% Assert recommendations.
-assert_recommendation(R) :-
-	debug(engine, 'assert_recommendation: Asserting rec ~p', [F]),
-	assert(recommendation(R)).
-
 %% Assert a list of facts, to initialize database before running inference.
 assert_list([]) :-
 	debug(engine, 'No list to assert.', []),!.
@@ -148,68 +143,71 @@ instantiated_facts([ID:Cond|Conds], [i(Cond, Seq)|InstantiatedFacts]) :-
 %% Tests for individual conditions.
 eval(X == Y) :-
 	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _),
-	Vx == Vy,
-	!.
+	fact(val(Y, Vy), _), !,
+	Vx == Vy.
 eval(X == Y) :-
-	fact(val(X, Vx), _),
-	Vx == Y,
-	!.
+	fact(val(X, Vx), _), !,
+	Vx == Y.
 eval(X == Y) :- X == Y, !.
 
 eval(X \= Y) :-
 	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _),
-	Vx \= Vy, !.
-
+	fact(val(Y, Vy), _), !,
+	Vx \= Vy.
 eval(X \= Y) :-
 	fact(val(X, Vx), _),
-	Vx \= Y, !.
+	!,
+	Vx \= Y.
 eval(X \= Y) :-
-	X \= Y, !.
+	number(X), !,
+	X \= Y.
 
 eval(X > Y)  :-
 	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _),
+	fact(val(Y, Vy), _), !,
 	Vx >  Vy, !.
 eval(X > Y)  :-
-	fact(val(X, Vx), _),
-	Vx >  Y, !.
+	fact(val(X, Vx), _), !,
+	Vx >  Y.
 eval(X > Y)  :-
-	fact(val(X, Vx), _),
-	Vx >  Y, !.
-eval(X > Y)  :-
-	X >  Y, !.
+	number(X), !,
+	X >  Y.
 
 eval(X >= Y) :-
 	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _),
-	Vx >= Vy, !.
+	fact(val(Y, Vy), _), !,
+	Vx >= Vy.
 eval(X >= Y) :-
-	fact(val(X, Vx), _),
-	Vx >= Y, !.
+	fact(val(X, Vx), _), !,
+	Vx >= Y.
 eval(X >= Y) :-
-	X >= Y, !.
+	number(X), !,
+	X >= Y.
 
 eval(X < Y)  :-
 	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _),
-	Vx <  Vy, !.
+	fact(val(Y, Vy), _), !,
+	Vx <  Vy.
 eval(X < Y)  :-
-	fact(val(X, Vx), _),
-	Vx <  Y, !.
+	fact(val(X, Vx), _), !,
+	Vx <  Y.
 eval(X < Y)  :-
-	X <  Y, !.
+	number(X), !,
+	X <  Y.
 
 eval(X =< Y) :-
+	debug(engine, 'eval1 ~p =< ~p', [X, Y]),
 	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _),
-	Vx =< Vy, !.
+	fact(val(Y, Vy), _), !,
+	Vx =< Vy.
 eval(X =< Y) :-
-	fact(val(X, Vx), _),
-	Vx =< Y, !.
+	debug(engine, 'eval2 ~p =< ~p', [X, Y]),
+	fact(val(X, Vx), _), !,
+	Vx =< Y.
 eval(X =< Y) :-
-	X =< Y, !.
+	debug(engine, 'eval3 ~p =< ~p', [X, Y]),
+	number(X), !,
+	X =< Y.
 
 % Test existence of a fact.
 eval(not(X, V)) :-
@@ -236,16 +234,16 @@ fire([Action|Rest]) :-
 %% The actions are:
 %% unify ('#'), XXX not implemented
 %% compare ('='),
-%% assert_fact,
-%% assert_recommendation. XXX could be a fact?
+%% assert_fact
+%% recommend - a convenience function to assert a recommendation fact.
 
-perform(recommend(X)) :-
-	debug(engine, 'Perform: recommend: ~p', [X]), 
-	assert_recommendation(X),
-	!.
 perform(assert_fact(X)) :-
 	debug(engine, 'Perform: assert_fact: asserting ~p', [X]),
 	assert_fact(X),
+	!.
+perform(recommend(X)) :-
+	debug(engine, 'Perform: recommend: ~p', [X]), 
+	assert_fact(recommendation(X)),
 	!.
 perform(X = Y) :-
 	X is Y,

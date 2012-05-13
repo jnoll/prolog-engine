@@ -2,13 +2,14 @@ foo(bar).
 
 rule jimtest:
 [
-	jim
+	1: jim
 ]
 ==>
 [
 	recommend(im_here_jim)
 ].
 
+%% Don't change these, else the unit tests will break.
 rule a: 
 [
 	annoying(X), 
@@ -17,30 +18,40 @@ rule a:
 ==> 
 [
 	assert_fact(isa(orange, X)),
-	recommend(annoyance_avoidance)
+	recommend(avoid(X))
 ].
 
 % GTD rules.
 rule doit: 
 [
 	actionable(X),
-	less_than_2_min(X)
+	effort(X) =< 2,
+	steps(X) == 1
 ]
 ==>
 [	
-	%XXX recommend(do(X))
-	recommend(doit)	
+	recommend(do(X)) 
+].
+
+rule deferit: 
+[
+	actionable(X),
+	effort(X) > 2,
+	steps(X) == 1
+]
+==>
+[	
+	recommend(defer(X))	
 ].
 
 
 rule project:
 [
 	actionable(X),
-	multi_step(X)
+	steps(X) > 1
 ]
 ==>
 [	
-	%XXX recommend(determine_successful_outcome(X))
-	recommend(determine_successful_outcome)
+	recommend(determine_successful_outcome(X))
 ].
 
