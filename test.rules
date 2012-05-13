@@ -1,0 +1,46 @@
+foo(bar).
+
+rule jimtest:
+[
+	jim
+]
+==>
+[
+	recommend(im_here_jim)
+].
+
+rule a: 
+[
+	annoying(X), 
+	color(orange, X)
+] 
+==> 
+[
+	assert_fact(isa(orange, X)),
+	recommend(annoyance_avoidance)
+].
+
+% GTD rules.
+rule doit: 
+[
+	actionable(X),
+	less_than_2_min(X)
+]
+==>
+[	
+	%XXX recommend(do(X))
+	recommend(doit)	
+].
+
+
+rule project:
+[
+	actionable(X),
+	multi_step(X)
+]
+==>
+[	
+	%XXX recommend(determine_successful_outcome(X))
+	recommend(determine_successful_outcome)
+].
+
