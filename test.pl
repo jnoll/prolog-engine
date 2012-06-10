@@ -9,6 +9,7 @@ main :-
 	engine:initialize('test.rules', 'test_facts.db'),
 	format('Initialization done.  Asserting test facts...~n'),
 	%engine:assert_list([annoying(aorange), color(orange, aorange)]),
+	engine:assert_fact(jim),
 	engine:assert_fact(actionable(drink)),
 	engine:assert_fact(effort(drink), 1),
 	engine:assert_fact(steps(drink), 1),
@@ -35,7 +36,7 @@ run :-
 %% http://objectmix.com/prolog/183896-trying-out-prolog-building-lists-predicates.html.
 %% '\+' succeeds if the following predicate doesn NOT.
 find_recs(SoFar, Result) :-
-	(engine:fact(recommendation(X), _),
+	(engine:fact(recommendation(X), true,  _),
 	 debug(test,'recommendation ~p found ~n', [X]),
 	 debug(test,'explanation ~p found ~n', [X]),
 	 \+ memberchk(X, SoFar) % if X is not in SoFar

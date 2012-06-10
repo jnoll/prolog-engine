@@ -17,11 +17,13 @@ test(seq) :-
 test(assert_fact) :-
 	engine:reset_seq(0),
 	engine:assert_fact(foo(bar)),
-	engine:fact(foo(bar), Seq),
-	Seq is 0,
+	engine:fact(foo(bar), V, Seq),
+	V == true,
+	Seq == 0,
 	engine:assert_fact(fro, 2),
-	engine:fact(val(fro, 2), Seq2),
-	Seq2 is 1.
+	engine:fact(fro, V2, Seq2),
+	V2 == 2,
+	Seq2 == 1.
 
 test(eval) :-
 	engine:eval(2 == 2),

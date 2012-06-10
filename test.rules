@@ -2,7 +2,7 @@ foo(bar).
 
 rule jimtest:
 [
-	1: jim
+	jim
 ]
 ==>
 [

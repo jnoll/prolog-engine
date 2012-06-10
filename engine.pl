@@ -25,7 +25,7 @@ cleanup :- debug(engine, 'cleaning up.', []).
 %% will fail with a syntax error :(.
 load_rules(F) :- reconsult(F).
 
-%% Entery point.
+%% Entry point.
 run :-
 	find_ready_rules(Rs),
 	debug(engine, 'Selecting rule from: ~p~n', [Rs]),
@@ -83,13 +83,18 @@ remove_instantiated([Uninstantiated|Rest], [Uninstantiated|Result]) :-
 assert_fact(Fact, Val) :-
 	debug(engine, 'assert_fact: ~p, ~p', [Fact, Val]),
 	get_seq(Seq), 
-	debug(engine, 'assert_fact: asserting fact(val(~p, ~p), ~p)', [Fact, Val, Seq]),
-	asserta(fact(val(Fact, Val), Seq)).
+	debug(engine, 'assert_fact: asserting fact(~p, ~p, ~p)', [Fact, Val, Seq]),
+	asserta(fact(Fact, Val, Seq)).
 assert_fact(Fact) :-
 	debug(engine, 'assert_fact: ~p', [Fact]),
 	get_seq(Seq), 
 	debug(engine, 'assert_fact: asserting fact(~p, ~p)', [Fact, Seq]),
-	asserta(fact(Fact, Seq)).
+	asserta(fact(Fact, true, Seq)).
+assert_fact(not(Fact)) :-
+	debug(engine, 'assert_fact: ~p', [Fact]),
+	get_seq(Seq), 
+	debug(engine, 'assert_fact: asserting fact(~p, ~p)', [Fact, Seq]),
+	asserta(fact(Fact, false, Seq)).
 
 %% Assert a list of facts, to initialize database before running inference.
 assert_list([]) :-
@@ -126,7 +131,7 @@ instantiated_facts([], []).
 instantiated_facts([Cond|Conds], [i(Cond, Seq)|InstantiatedFacts]) :-
 	debug(engine, "Cond: ~p", [Cond]),
 	!,
-	(fact(Cond, Seq); % a fact matching Cond was asserted at Seq, or
+	(fact(Cond, true, Seq); % a fact matching Cond was asserted at Seq, or
 	 eval(Cond), Seq = 0), % Cond evaluates to true, create dummy Seq = 0.
 	instantiated_facts(Conds, InstantiatedFacts),
 	debug(engine, "InstantiatedFacts: ~p", [InstantiatedFacts]).
@@ -135,27 +140,27 @@ instantiated_facts([Cond|Conds], [i(Cond, Seq)|InstantiatedFacts]) :-
 instantiated_facts([ID:Cond|Conds], [i(Cond, Seq)|InstantiatedFacts]) :-
 	debug(engine, "Cond: ~p", [Cond]),
 	!,
-	(fact(Cond, Seq); % a fact matching Cond was asserted at Seq, or
+	(fact(Cond, true, Seq); % a fact matching Cond was asserted at Seq, or
 	 eval(Cond), Seq = 0), % Cond evaluates to true, create dummy Seq = 0.
 	instantiated_facts(Conds, InstantiatedFacts),
 	debug(engine, "InstantiatedFacts: ~p", [InstantiatedFacts]).
 
 %% Tests for individual conditions.
 eval(X == Y) :-
-	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _), !,
+	fact(X, Vx, _),
+	fact(Y, Vy, _), !,
 	Vx == Vy.
 eval(X == Y) :-
-	fact(val(X, Vx), _), !,
+	fact(X, Vx, _), !,
 	Vx == Y.
 eval(X == Y) :- X == Y, !.
 
 eval(X \= Y) :-
-	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _), !,
+	fact(X, Vx, _),
+	fact(Y, Vy, _), !,
 	Vx \= Vy.
 eval(X \= Y) :-
-	fact(val(X, Vx), _),
+	fact(X, Vx, _),
 	!,
 	Vx \= Y.
 eval(X \= Y) :-
@@ -163,33 +168,33 @@ eval(X \= Y) :-
 	X \= Y.
 
 eval(X > Y)  :-
-	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _), !,
+	fact(X, Vx, _),
+	fact(Y, Vy, _), !,
 	Vx >  Vy, !.
 eval(X > Y)  :-
-	fact(val(X, Vx), _), !,
+	fact(X, Vx, _), !,
 	Vx >  Y.
 eval(X > Y)  :-
 	number(X), !,
 	X >  Y.
 
 eval(X >= Y) :-
-	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _), !,
+	fact(X, Vx, _),
+	fact(Y, Vy, _), !,
 	Vx >= Vy.
 eval(X >= Y) :-
-	fact(val(X, Vx), _), !,
+	fact(X, Vx, _), !,
 	Vx >= Y.
 eval(X >= Y) :-
 	number(X), !,
 	X >= Y.
 
 eval(X < Y)  :-
-	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _), !,
+	fact(X, Vx, _),
+	fact(Y, Vy, _), !,
 	Vx <  Vy.
 eval(X < Y)  :-
-	fact(val(X, Vx), _), !,
+	fact(X, Vx, _), !,
 	Vx <  Y.
 eval(X < Y)  :-
 	number(X), !,
@@ -197,12 +202,12 @@ eval(X < Y)  :-
 
 eval(X =< Y) :-
 	debug(engine, 'eval1 ~p =< ~p', [X, Y]),
-	fact(val(X, Vx), _),
-	fact(val(Y, Vy), _), !,
+	fact(X, Vx, _),
+	fact(Y, Vy, _), !,
 	Vx =< Vy.
 eval(X =< Y) :-
 	debug(engine, 'eval2 ~p =< ~p', [X, Y]),
-	fact(val(X, Vx), _), !,
+	fact(X, Vx, _), !,
 	Vx =< Y.
 eval(X =< Y) :-
 	debug(engine, 'eval3 ~p =< ~p', [X, Y]),
@@ -211,9 +216,9 @@ eval(X =< Y) :-
 
 % Test existence of a fact.
 eval(not(X, V)) :-
-	fact(val(X, V), _), !, fail.
+	fact(X, Y, _), !, V \= Y.
 eval(not(X)) :-
-	fact(X, _), !, fail.
+	fact(X, V,  _), !, V == false.
 eval(not(X, V)) :- true.
 eval(not(X)) :- true.
 
