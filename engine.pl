@@ -242,7 +242,7 @@ fire([Action|Rest]) :-
 %% assert_fact
 %% recommend - a convenience function to assert a recommendation fact.
 
-perform(assert_fact(X)) :-
+perform(assert(X)) :-
 	debug(engine, 'Perform: assert_fact: asserting ~p', [X]),
 	assert_fact(X),
 	!.

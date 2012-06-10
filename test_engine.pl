@@ -130,7 +130,7 @@ test(find_ready_rules) :-
 	engine:assert_fact(color(orange,orange)),
 	engine:find_ready_rules(R2),
 	format('find_ready_rules: R2 = ~p~n', [R2]),
-	R2 == [r([i(annoying(orange),0),i(color(orange,orange),2)],a,[annoying(orange),color(orange,orange)],[assert_fact(isa(orange,orange)),recommend(avoid(orange))])].
+	R2 == [r([i(annoying(orange),0),i(color(orange,orange),2)],a,[annoying(orange),color(orange,orange)],[assert(isa(orange,orange)),recommend(avoid(orange))])].
 
 					      
 
@@ -138,13 +138,13 @@ test(remove_instantiated) :-
 	engine:find_ready_rules(Rs), 
 	engine:remove_instantiated(Rs, Result),
 	format('remove_instantiated: Result = ~p~n', [Result]),
-	Result == [r([i(annoying(orange),0),i(color(orange,orange),2)],a,[annoying(orange),color(orange,orange)],[assert_fact(isa(orange,orange)),recommend(avoid(orange))])].
+	Result == [r([i(annoying(orange),0),i(color(orange,orange),2)],a,[annoying(orange),color(orange,orange)],[assert(isa(orange,orange)),recommend(avoid(orange))])].
 
 
 test(select_rule) :-
 	engine:find_ready_rules(Rs), 
 	engine:select_rule(Rs, Result),
 	format('select_rule: Result = ~p~n', [Result]),
-	Result == r([i(annoying(orange),0),i(color(orange,orange),2)],a,[annoying(orange),color(orange,orange)],[assert_fact(isa(orange,orange)),recommend(avoid(orange))]).
+	Result == r([i(annoying(orange),0),i(color(orange,orange),2)],a,[annoying(orange),color(orange,orange)],[assert(isa(orange,orange)),recommend(avoid(orange))]).
 
 :- end_tests(engine).

@@ -17,7 +17,7 @@ rule a:
 ] 
 ==> 
 [
-	assert_fact(isa(orange, X)),
+	assert(isa(orange, X)),
 	recommend(avoid(X))
 ].
 
