@@ -23,7 +23,9 @@ cleanup :- debug(engine, 'cleaning up.', []).
 
 %% XXX This must be the first engine predicate invoked, otherwise it
 %% will fail with a syntax error :(.
-load_rules(F) :- reconsult(F).
+load_rules(F) :-
+	reconsult(F),
+	assert(rules_loaded(F)).
 
 %% Entry point.
 run :-
@@ -225,15 +227,15 @@ eval(not(X)) :- true.
 
 %% "Fire" a rule by performing each of its actions.
 fire([]) :-
-	debug(engine, 'Fire: nothing to fire?', []),
+	debug(engine, 'fire: nothing to fire?', []),
 	!.
 fire([Action|Rest]) :-
-	debug(engine, 'Fire: firing ~p', [Action]),
+	debug(engine, 'fire: firing ~p', [Action]),
 	perform(Action),
 	debug(engine, '...fired ~p', [Action]),
 	fire(Rest).
 fire([Action|Rest]) :-
-	debug(engine, 'Fire ~p failed.', [Action]).
+	debug(engine, 'fire: ~p failed.', [Action]).
 
 %% Perform an action.
 %% The actions are:
@@ -241,15 +243,26 @@ fire([Action|Rest]) :-
 %% compare ('='),
 %% assert_fact
 %% recommend - a convenience function to assert a recommendation fact.
+%% ask - a convenience function to assert a query fact.
 
 perform(assert(X)) :-
-	debug(engine, 'Perform: assert_fact: asserting ~p', [X]),
+	debug(engine, 'perform: assert_fact: asserting ~p', [X]),
 	assert_fact(X),
 	!.
 perform(recommend(X)) :-
-	debug(engine, 'Perform: recommend: ~p', [X]), 
+	debug(engine, 'perform: recommend: ~p', [X]), 
 	assert_fact(recommendation(X)),
 	!.
+perform(ask(X)) :-
+	debug(engine, 'perform: query: ~p', [X]), 
+	assert_fact(query(X)),
+	!.
+perform(load(X)) :-
+	debug(engine, 'perform: load: ~p', [X]), 
+	load_rules(X),
+	!.
+	
+
 perform(X = Y) :-
 	X is Y,
 	!.

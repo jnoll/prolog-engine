@@ -1,3 +1,6 @@
+%% -*- Prolog -*-
+%% Rules for unit tests.
+
 foo(bar).
 
 rule jimtest:
@@ -55,3 +58,5 @@ rule project:
 	recommend(determine_successful_outcome(X))
 ].
 
+rule test_load_action:
+[ test_perform_load2 ] ==> [ load('load_test2.rules') ].

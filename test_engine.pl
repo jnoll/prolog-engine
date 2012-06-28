@@ -147,4 +147,24 @@ test(select_rule) :-
 	format('select_rule: Result = ~p~n', [Result]),
 	Result == r([i(annoying(orange),0),i(color(orange,orange),2)],a,[annoying(orange),color(orange,orange)],[assert(isa(orange,orange)),recommend(avoid(orange))]).
 
+
+test(perform) :-
+	engine:perform(ask(try_it)),
+	engine:fact(query(can_you_do_this), true, _),
+	engine:perform(recommend(try_it)),
+	engine:fact(recommendation(try_it), true, _).
+
+test(perform_load) :-
+	engine:perform(load('load_test.rules')),
+	engine:fact(rules_loaded('load_test.rules'), true, _),
+	engine:assert_fact(test_perform_load, true),
+	engine:run(),
+	engine:fact(recommendation(test_perform_load), true, _).
+	
+test(load_action) :-
+	engine:assert_fact(test_load_action, true),
+	engine:run(),
+	engine:fact(recommendation(test_load_action), true, _).
+	
+	
 :- end_tests(engine).
