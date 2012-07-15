@@ -1,0 +1,9 @@
+%% -*- Prolog -*-
+%% Rules to test the engine load() action.
+
+%initial_data([]).
+:- multifile rule/1.
+
+rule test_load_action2: 
+[ test_load_action2 ] ==> [ recommend(test_load_action2) ].
+

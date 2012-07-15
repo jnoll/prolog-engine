@@ -1,0 +1,11 @@
+%% -*- Prolog -*-
+%% Rules to test the engine load() action.
+
+%foo(bar).
+:- multifile rule/1.
+
+rule load_test: 
+[ load_test ] ==> [ recommend(load_test) ].
+
+
+

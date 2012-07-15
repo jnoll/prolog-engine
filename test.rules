@@ -1,18 +1,36 @@
 %% -*- Prolog -*-
 %% Rules for unit tests.
 
-foo(bar).
+%initial_data([]).
+:- multifile rule/1.
+
+rule test_post_load_action:
+[ test_post_load_action ] ==> [ recommend(post_load_action) ].
+
+rule test_load_action_alt:
+[ test_load_action_alt ] ==> [ ask(test_load_action) ].
+
+rule test_load_action:
+[ test_load_action ] ==> [ load('load_test2.rules') ].
+
+
+
 
 rule jimtest:
-[
-	jim
-]
-==>
-[
-	recommend(im_here_jim)
-].
+[ jim ] ==> [ recommend(im_here_jim) ].
 
 %% Don't change these, else the unit tests will break.
+% Test firing of a sequence of rules from an initial fact.
+rule sequence1: [ sequence_1 ] ==> [ assert(sequence_2) ].
+rule sequence2: [ sequence_2 ] ==> [ assert(sequence_3) ].
+rule sequence3: [ sequence_3 ] ==> [ recommend(end_sequence) ].
+
+% Test 'fanout' from a fact: one fact fires multiple rules.
+rule branch1a: [ branch_start ] ==> [ assert(branch_2) ].
+rule branch1b: [ branch_start ] ==> [ assert(branch_3) ].
+rule branch2:  [ branch_2 ] ==> [ recommend(branch_end_2) ].
+rule branch3:  [ branch_3 ] ==> [ recommend(branch_end_3) ].
+
 rule a: 
 [
 	annoying(X), 
@@ -57,6 +75,3 @@ rule project:
 [	
 	recommend(determine_successful_outcome(X))
 ].
-
-rule test_load_action:
-[ test_perform_load2 ] ==> [ load('load_test2.rules') ].
