@@ -3,6 +3,7 @@
 %%% (c) 2012 John Noll - Lero
 :-module(engine, []).
 :- use_module(library(debug)).
+:- use_module(session).
 
 
 :- multifile fire/1.
@@ -12,18 +13,22 @@
 %% The ':' operator is already defined in SWI.
 :-op(600, xfx, ==>).
 :-op(610, fx, rule).
+:-op(620, xfx, <=).
 %:-op(500, xfy, #).		% Unification.
 %:-op(50, xfy, :).
 
 
-%% XXX for compatibility with old engine, a second argument for a persistent facts db is accepted.
 initialize(Rules) :-
 	reset_seq(0),
 	load_rules(Rules).
-initialize(Rules, _) :-
+initialize(Rules, PersistFile) :-
 	initialize(Rules).
-%% XXX for compatibility with old engine.
-cleanup :- debug(engine, 'cleaning up.', []).
+	%session:load(PersistFile).
+
+cleanup :-
+	debug(engine, 'cleaning up.', []).
+	%session:save,
+	%session:close.
 
 %% XXX This must be the first engine predicate invoked, otherwise it
 %% will fail with a syntax error :(.
@@ -32,12 +37,13 @@ load_rules(F) :-
 	consult(F),
 	assert(rules_loaded(F)).
 
+
 %% Entry point.
 run :-
 	find_ready_rules(Rs),
 	debug(engine, 'Selecting rule from: ~p', [Rs]),
 	select_rule(Rs, r(InstantiatedFacts, Name, Conds, Actions)),
-	debug(engine, 'firing: ~p', [Actions]),
+	debug(engine, 'firing: ~p', [Actions, Conds]),
 	fire(Actions),
 	assert(fired(InstantiatedFacts, Name)), !,
 	run.
@@ -54,7 +60,7 @@ find_ready_rules(Result) :-
 %% Select a rule structure from ready rule structures.
 %% XXX It's just the first uninstantiated rule found.
 select_rule(Rs, R) :-
-	remove_instantiated(Rs, [R|Uninstantiated]).
+	remove_instantiated(Rs, [R|_]).
 
 %% Remove instantiated rule structures from a list.  Rule structures
 %% get instantiated when a rule 'fires', indicating that the rule has
@@ -63,7 +69,7 @@ select_rule(Rs, R) :-
 remove_instantiated([], []).
 remove_instantiated([r(InstantiatedFacts, Name, Conds, Actions)|Rest], Result) :-
 	fired(InstantiatedFacts, Name), % rule instantiated: leave head out,
-	debug(engine, 'remove_instantiated: ~p instantiated', [Name]),
+	debug(engine, 'remove_instantiated: ~p instantiated', [Name, Conds, Actions]),
 	!, 
 	remove_instantiated(Rest, Result). % continue on remaining rules.
 remove_instantiated([Uninstantiated|Rest], [Uninstantiated|Result]) :-
@@ -86,32 +92,37 @@ remove_instantiated([Uninstantiated|Rest], [Uninstantiated|Result]) :-
 :- dynamic fired/2.
 
 
-
+
 %% Facts are either traditional prolog facts, as in 'isa(socrates, man)', or
 %% pairs (Factname, Value), as in '(length, 2)'.  This enables rules like
 %% rule r1: [length > 2] ==> [recommend(bookshelf)].
 %% as well as
 %% rule r2: [isa(X, man)] ==> [mortal(X)].
+%fact(Fact, Val, Seq) :-
+%	session:get_fact(Fact, Val, Seq).
+
 assert_fact(Fact, Val) :-
-	debug(engine, 'assert_fact: frobaz ~p, ~p', [Fact, Val]),
+	debug(engine, 'assert_fact/2: ~p, ~p', [Fact, Val]),
 	get_seq(Seq), 
-	debug(engine, 'assert_fact: frobaz  asserting fact(~p, ~p, ~p)', [Fact, Val, Seq]),
+	debug(engine, 'assert_fact/2: asserting fact(~p, ~p, ~p)', [Fact, Val, Seq]),
 	asserta(fact(Fact, Val, Seq)).
+	%session:save_fact(Fact, Val, Seq).
 
 % This has to come before the last, else won't match.
 assert_fact(not(Fact)) :-
-	debug(engine, 'assert_fact: NOT(~p)', [Fact]),
+	debug(engine, 'assert_fact/1: NOT(~p)', [Fact]),
 	get_seq(Seq), 
-	debug(engine, 'assert_fact: asserting fact(~p, false, ~p)', [Fact, Seq]),
+	debug(engine, 'assert_fact/1: asserting fact(~p, false, ~p)', [Fact, Seq]),
 	asserta(fact(Fact, false, Seq)),
+	%session:save_fact(Fact, false, Seq),
 	!.			% necessary to prevent last rule from firing.
 
 assert_fact(Fact) :-
-	debug(engine, 'assert_fact: foobar ~p', [Fact]),
+	debug(engine, 'assert_fact/1:  ~p', [Fact]),
 	get_seq(Seq), 
-	debug(engine, 'assert_fact: foobar asserting fact(~p, true, ~p)', [Fact, Seq]),
+	debug(engine, 'assert_fact/1: asserting fact(~p, true, ~p)', [Fact, Seq]),
 	asserta(fact(Fact, true, Seq)).
-
+	%session:save_fact(Fact, true, Seq).
 
 %% Assert a list of facts, to initialize database before running inference.
 assert_list([]) :-
@@ -152,7 +163,7 @@ instantiated_facts([], []).
 
 %% Conditions may be identified by an ID number.
 instantiated_facts([ID:Cond|Conds], [i(Cond, Seq)|InstantiatedFacts]) :-
-	debug(engine, 'Cond: ~p', [Cond]),
+	debug(engine, 'Cond1: ~p:~p', [ID, Cond]),
 	!,
 	(fact(Cond, true, Seq), % a fact matching Cond was asserted at Seq, or
 	 debug(engine, 'instantiated_facts: fact ~p is true at ~p', [Cond, Seq])
@@ -164,8 +175,8 @@ instantiated_facts([ID:Cond|Conds], [i(Cond, Seq)|InstantiatedFacts]) :-
 	debug(engine, 'InstantiatedFacts = ~p', [InstantiatedFacts]).
 
 instantiated_facts([Cond|Conds], [i(Cond, Seq)|InstantiatedFacts]) :-
-	debug(engine, 'Cond: ~p', [Cond]),
-	!,
+	debug(engine, 'Cond2: ~p', [Cond]),
+%	!,
 	(fact(Cond, true, Seq), % a fact matching Cond was asserted at Seq, or
 	 debug(engine, 'instantiated_facts: fact ~p is true at ~p', [Cond, Seq])
 	;
@@ -190,111 +201,127 @@ eval(X == Y) :-
 	X == Y, !.
 
 eval(X \= Y) :-
+	debug(engine, 'eval4 ~p \\= ~p', [X, Y]),
 	fact(X, Vx, _),
 	fact(Y, Vy, _), !,
-	Vx \= Vy.
+	Vx \= Vy,
+	debug(engine, 'eval4 ~p \\= ~p is true', [X, Y]),
+	true.
 eval(X \= Y) :-
+	debug(engine, 'eval5 ~p \\= ~p', [X, Y]),
 	fact(X, Vx, _),
 	!,
-	Vx \= Y.
+	Vx \= Y,
+	debug(engine, 'eval5 ~p \\= ~p is true', [X, Y]),
+	true.
+
 eval(X \= Y) :-
-	number(X), !,
-	X \= Y.
+	debug(engine, 'eval6 ~p \\= ~p', [X, Y]),
+	%number(X),!,
+	X \= Y,
+	debug(engine, 'eval6 ~p \\= ~p is true', [X, Y]),
+	true.
 
 
 eval(X > Y)  :-
-	debug(engine, 'eval1 ~p > ~p', [X, Y]),
+	debug(engine, 'eval7 ~p > ~p', [X, Y]),
 	fact(X, Vx, _),
 	number(Vx),
 	fact(Y, Vy, _), !,
 	number(Vy),
 	Vx >  Vy, !.
 eval(X > Y)  :-
-	debug(engine, 'eval2 ~p > ~p', [X, Y]),
+	debug(engine, 'eval8 ~p > ~p', [X, Y]),
 	fact(X, Vx, _), !,
 	number(Vx),
 	Vx >  Y.
 eval(X > Y)  :-
-	debug(engine, 'eval3 ~p > ~p', [X, Y]),
+	debug(engine, 'eval9 ~p > ~p', [X, Y]),
 	number(X), !,
 	X >  Y.
 
 eval(X >= Y) :-
+	debug(engine, 'eval10 ~p >= ~p', [X, Y]),
 	fact(X, Vx, _),
 	number(Vx),
 	fact(Y, Vy, _), !,
 	number(Vy),
 	Vx >= Vy.
 eval(X >= Y) :-
+	debug(engine, 'eval11 ~p >= ~p', [X, Y]),
 	fact(X, Vx, _), !,
 	number(Vx),
 	Vx >= Y.
 eval(X >= Y) :-
+	debug(engine, 'eval12 ~p >= ~p', [X, Y]),
 	number(X),
 	!,
 	X >= Y.
 
 eval(X < Y)  :-
+	debug(engine, 'eval13 ~p < ~p', [X, Y]),
 	fact(X, Vx, _),
 	number(Vx),
 	fact(Y, Vy, _), !,
 	number(Vy),
 	Vx <  Vy.
 eval(X < Y)  :-
+	debug(engine, 'eval14 ~p < ~p', [X, Y]),
 	fact(X, Vx, _), !,
 	number(Vx),
 	Vx <  Y.
 eval(X < Y)  :-
+	debug(engine, 'eval15 ~p < ~p', [X, Y]),
 	number(X), !,
 	X <  Y.
 
 eval(X =< Y) :-
-	debug(engine, 'eval1 ~p =< ~p', [X, Y]),
+	debug(engine, 'eval16 ~p =< ~p', [X, Y]),
 	fact(X, Vx, _),
 	number(Vx),
 	fact(Y, Vy, _), !,
 	number(Vy),
 	Vx =< Vy.
 eval(X =< Y) :-
-	debug(engine, 'eval2 ~p =< ~p', [X, Y]),
+	debug(engine, 'eval17 ~p =< ~p', [X, Y]),
 	fact(X, Vx, _), !,
 	number(Vx),
 	Vx =< Y.
 eval(X =< Y) :-
-	debug(engine, 'eval3 ~p =< ~p', [X, Y]),
+	debug(engine, 'eval18 ~p =< ~p', [X, Y]),
 	number(X), !,
 	X =< Y.
 
 %% Allow C-style comparison too.
 eval(X <= Y) :-
-	debug(engine, 'eval1 ~p <= ~p', [X, Y]),
+	debug(engine, 'eval19 ~p <= ~p', [X, Y]),
 	fact(X, Vx, _),
 	number(Vx),
 	fact(Y, Vy, _), !,
 	number(Vy),
 	Vx =< Vy.
 eval(X <= Y) :-
-	debug(engine, 'eval2 ~p <= ~p', [X, Y]),
+	debug(engine, 'eval20 ~p <= ~p', [X, Y]),
 	fact(X, Vx, _), !,
 	number(Vx),
 	Vx =< Y.
 eval(X <= Y) :-
-	debug(engine, 'eval3 ~p <= ~p', [X, Y]),
+	debug(engine, 'eval21 ~p <= ~p', [X, Y]),
 	number(X), !,
 	X =< Y.
 
 % Test existence of a fact.
 eval(not(X, V)) :-
-	debug(engine, 'eval1 not(~p, ~p)',  [X, V]),
+	debug(engine, 'eval22 not(~p, ~p)',  [X, V]),
 	fact(X, Y, _), !, V \= Y.
 eval(not(X)) :-
-	debug(engine, 'eval2 not(~p)',  [X]),
+	debug(engine, 'eval23 not(~p)',  [X]),
 	fact(X, V,  _), !, V == false.
 eval(not(X, V)) :-
-	debug(engine, 'eval3 not(~p, ~p)',  [X, V]),
+	debug(engine, 'eval24 not(~p, ~p)',  [X, V]),
 	true.
 eval(not(X)) :-
-	debug(engine, 'eval4 not(~p)',  [X]),
+	debug(engine, 'eval25 not(~p)',  [X]),
 	true.
 
 
@@ -307,7 +334,7 @@ fire([Action|Rest]) :-
 	perform(Action),
 	debug(engine, '...fired ~p', [Action]),
 	fire(Rest).
-fire([Action|Rest]) :-
+fire([Action|_]) :-
 	debug(engine, 'fire: ~p failed.', [Action]).
 
 %% Perform an action.
@@ -334,12 +361,16 @@ perform(load(X)) :-
 	debug(engine, 'perform: load: ~p', [X]), 
 	load_rules(X),
 	!.
+perform(new(Pattern,X)) :-
+	debug(engine, 'perform: new: ~p', [Pattern]), 
+	gensym(Pattern,X),
+	!.
 	
 
 perform(X = Y) :-
 	X is Y,
 	!.
 perform(member(X,Y)) :- member(X,Y), !.
-member(X,[X|Y]).
-member(X,[Y|Z]) :- member(X,Z).
+member(X,[X|_]).
+member(X,[_|Z]) :- member(X,Z).
 
